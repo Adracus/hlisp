@@ -4,25 +4,28 @@ import Text.Parsec
 import Text.Printf
 import Text.Show.Functions
 import Data.Maybe (fromMaybe)
+import Control.Monad (foldM)
 import qualified Data.Map as Map
 
 type Parser a = Parsec String () a
 type Bindings = Map.Map String Atom
 type Res = (Bindings, Atom)
-type HFn = Bindings -> [Atom] -> Res
+type HFn = Bindings -> [Atom] -> Either String Res
 
 data Atom = Str String
           | Number Integer
           | Ident String
           | List [Atom]
-          | Fn (Bindings -> [Atom] -> Res)
+          | SpecialForm HFn
 
 instance Show Atom where
   show (Str s)    = printf "\"%s\"" s
   show (Number n) = show n
   show (Ident i)  = i
   show (List l)   = printf "(%s)" $ unwords $ map show l
-  show (Fn _)     = "<function>"
+  show (SpecialForm _)     = "<function>"
+
+unit = List []
 
 escape :: Parser String
 escape = do
@@ -73,42 +76,41 @@ eval b a =
   case a of
     Str _          -> Right (b, a)
     Number _       -> Right (b, a)
-    Fn _           -> Right (b, a)
+    SpecialForm _  -> Left "Cannot take value of macro"
     List []        -> Right (b, a)
-    Ident i        -> evalIdent i
+    Ident i        -> evalIdent b i
     List (op:args) -> do
-      (b', op')  <- eval b op
-      evalFn b' op' args
+      (b, op) <- eval b op
+      evalOp b op args
   where
-    evalIdent i =
+    evalIdent :: Bindings -> String -> Either String Res
+    evalIdent b i =
       fromMaybe
         (Left (printf "Undefined '%s'" i)) $
         fmap (\x -> Right (b, x)) $ b Map.!? i
-    evalFn b v args =
-      case v of
-        Fn f  -> Right $ f b args
-        other -> Left $ printf "Cannot eval '%s'" (show other)
+
+    evalOp :: Bindings -> Atom -> [Atom] -> Either String Res
+    evalOp b (SpecialForm m) args = m b args
+    evalOp _ other _              = Left $ printf "Cannot eval '%s'" (show other)
 
 evalProgram :: Bindings -> [Atom] -> Either String Atom
-evalProgram = evalInner $ List []
-  where
-    evalInner acc _ []    = Right acc
-    evalInner _ b (x:xs)  =
-      case eval b x of
-        Left l            -> Left l
-        Right (b', a)     -> evalInner a b' xs
+evalProgram b atoms = fmap snd $ foldM (eval . fst) (b, unit) atoms
 
 def :: HFn
-def b ((Ident i):v:[]) = (Map.insert i v b, v)
+def b ((Ident i):v:[]) = Right (Map.insert i v b, v)
 
 plus :: HFn
-plus b ((Number n1):(Number n2):_) = (b, Number $ n1 + n2)
+plus b ((Number n1):(Number n2):_) = Right (b, Number $ n1 + n2)
 
+evalFn :: HFn
+evalFn b [a] = eval b a
 
+defaultBindings :: Map.Map String Atom
 defaultBindings =
   Map.fromList [
-    ("def", Fn def),
-    ("plus", Fn plus)
+    ("def", SpecialForm def),
+    ("plus", SpecialForm plus),
+    ("eval", SpecialForm evalFn)
   ]
 
 main :: IO ()
