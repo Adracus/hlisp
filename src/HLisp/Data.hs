@@ -1,7 +1,6 @@
 module HLisp.Data
 ( Atom (..),
   Bindings,
-  HFn,
   Res,
   unit,
 ) where
@@ -11,13 +10,14 @@ import Data.Map (Map)
 
 type Bindings = Map String Atom
 type Res = (Bindings, Atom)
-type HFn = Bindings -> [Atom] -> Either String Res
 
 data Atom = Str String
           | Number Integer
+          | Boolean Bool
           | Ident String
           | List [Atom]
-          | SpecialForm HFn
+          | SpecialForm (Bindings -> [Atom] -> Either String Res)
+          | HFunction (Bindings -> [Atom] -> Either String Res)
 
 unit :: Atom
 unit = List []
@@ -25,7 +25,9 @@ unit = List []
 instance Show Atom where
   show (Str s)          = printf "\"%s\"" s
   show (Number n)       = show n
+  show (Boolean b)      = show b
   show (Ident i)        = i
   show (List l)         = printf "(%s)" $ unwords $ map show l
-  show (SpecialForm _)  = "<function>"
+  show (HFunction _)    = "<function>"
+  show (SpecialForm _)  = "<special form>"
 

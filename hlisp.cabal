@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 74a126883df5f953bd980cbd797dfb8d7124b46c985bbb5da70c110e7617c6a8
+-- hash: 62e92c6fe269d350a02b4844280cae947c3b880f43a0473c97e06ff52ba797dd
 
 name:           hlisp
 version:        0.1.0.0
@@ -22,7 +22,9 @@ executable hlisp
   main-is: Main.hs
   other-modules:
       HLisp.Data
+      HLisp.Eval
       HLisp.Parser
+      HLisp.Stdlib
       Paths_hlisp
   hs-source-dirs:
       src
