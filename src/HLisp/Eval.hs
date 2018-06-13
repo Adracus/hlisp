@@ -33,7 +33,7 @@ eval b a =
 
     evalOp :: Bindings -> Atom -> [Atom] -> Either String Res
     evalOp b (SpecialForm m) args = m b args
-    evalOp b (HFunction f) args   = (evalArgs b args) >>= (uncurry f)
+    evalOp b (Builtin f) args     = (evalArgs b args) >>= (uncurry f)
     evalOp _ other _              = Left $ printf "Cannot eval '%s'" (show other)
 
 evalProgram :: Bindings -> [Atom] -> Either String Atom
