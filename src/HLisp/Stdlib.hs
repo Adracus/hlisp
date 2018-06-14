@@ -38,7 +38,7 @@ arity3 f = arityN 3 inner
         inner b _            = error "Invalid state"
 
 defFn :: HFunction2
-defFn b (Ident i) v = fmap (\(b, v) -> (Map.insert i v b, v)) $ Eval.eval b v
+defFn b (Ident i) v = fmap (\(b, v) -> (insertDef i v b, v)) $ Eval.eval b v
 
 evalFn :: HFunction1
 evalFn b a = Eval.eval b a
@@ -51,8 +51,8 @@ ifFn b cond' then' else' = do
 letFn :: HFunction
 letFn b [List [Ident i, v], body] = do
   (b, v) <- Eval.eval b v
-  (b, r) <- Eval.eval (Map.insert i v b) body
-  return (Map.delete i b, r)
+  (b, r) <- Eval.eval (insertLet i v (push b)) body
+  return (pop b, r)
 
 errFn :: HFunction1
 errFn b (Str msg) = Left msg
@@ -86,16 +86,20 @@ false = Boolean False
 
 stdlib :: Bindings
 stdlib =
-  Map.fromList [
-    ("def", def),
-    ("eval", eval),
-    ("if", if'),
-    ("let", let'),
+  Bindings {
+    defs =
+      Map.fromList [
+        ("def", def),
+        ("eval", eval),
+        ("if", if'),
+        ("let", let'),
 
-    ("plus", plus),
-    ("err", err),
+        ("plus", plus),
+        ("err", err),
 
-    ("true", true),
-    ("false", false)
-  ]
+        ("true", true),
+        ("false", false)
+      ],
+    lets = []
+  }
 

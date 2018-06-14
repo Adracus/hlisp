@@ -25,7 +25,7 @@ eval b a =
     evalIdent b i =
       fromMaybe
         (Left (printf "Undefined '%s'" i)) $
-        fmap (\x -> Right (b, x)) $ b Map.!? i
+        fmap (\x -> Right (b, x)) $ get i b
 
     evalArgs :: Bindings -> [Atom] -> Either String (Bindings, [Atom])
     evalArgs b args = foldM f (b, []) args
